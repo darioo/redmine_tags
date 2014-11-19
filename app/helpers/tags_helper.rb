@@ -17,6 +17,9 @@
 # along with redmine_tags.  If not, see <http://www.gnu.org/licenses/>.
 
 require 'digest/md5'
+require 'color/palette/monocontrast'
+require 'color/rgb'
+
 
 module TagsHelper
   include ActsAsTaggableOn::TagsHelper
@@ -30,21 +33,25 @@ module TagsHelper
   #   * show_count  - Boolean. Whenever show tag counts
   #   * open_only   - Boolean. Whenever link to the filter with "open" issues
   #                   only limit.
-  def render_tag_link(tag, options = {})
-     foreground = Color::RGB.from_grayscale_fraction(0.5)
+ def render_tag_link(tag, options = {})
+     foreground = Color::RGB.from_grayscale_fraction(1)
      background = Color::RGB.from_html(tag_color(tag))
-     Color::Palette::MonoContrast.calculate_foreground(background, foreground)
-    
-    
+
+     mC = Color::Palette::MonoContrast.new(background,foreground);
+
+     foreground = mC.calculate_foreground(background, foreground)
+
+
     filters = [[:tags, '=', tag.name]]
     filters << [:status_id, 'o'] if options[:open_only]
     if options[:use_search]
       content =  link_to(tag, {:controller => "search", :action => "index", :id => @project, :q => tag.name, :wiki_pages => true, :issues => true}, :style => "color: #{foreground.html}")
     else
-      content = link_to_filter tag.name, filters, :project_id => @project, :style => "color: #{foreground.html}"
+        filters << [:project_id , @project]
+        content = link_to_filter( tag.name, filters, :style => "color: #{foreground.html}")
     end
     if options[:show_count]
-      content << content_tag('span', "(#{tag.count})", :class => 'tag-count')
+      content << content_tag('span', "(#{tag.count})", :class => 'tag-count', :style => "color: #{foreground.html}")
     end
 
     style = RedmineTags.settings[:issues_use_colors].to_i > 0 ? {:class => "tag-label-color", :style => "background-color: #{background.html}"} : {:class => "tag-label"}
